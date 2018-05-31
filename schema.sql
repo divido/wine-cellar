@@ -1,0 +1,51 @@
+BEGIN TRANSACTION;
+DROP TABLE IF EXISTS `winery`;
+CREATE TABLE IF NOT EXISTS `winery` (
+	`id`	INTEGER PRIMARY KEY AUTOINCREMENT,
+	`name`	TEXT NOT NULL,
+	`region`	INTEGER NOT NULL,
+	FOREIGN KEY(`region`) REFERENCES `region`(`id`)
+);
+DROP TABLE IF EXISTS `varietal`;
+CREATE TABLE IF NOT EXISTS `varietal` (
+	`id`	INTEGER PRIMARY KEY AUTOINCREMENT,
+	`name`	TEXT NOT NULL UNIQUE,
+	`boldness`	INTEGER NOT NULL
+);
+DROP TABLE IF EXISTS `region`;
+CREATE TABLE IF NOT EXISTS `region` (
+	`id`	INTEGER PRIMARY KEY AUTOINCREMENT,
+	`name`	TEXT NOT NULL,
+	`country`	TEXT NOT NULL
+);
+DROP TABLE IF EXISTS `label`;
+CREATE TABLE IF NOT EXISTS `label` (
+	`id`	INTEGER PRIMARY KEY AUTOINCREMENT,
+	`name`	TEXT NOT NULL,
+	`winery`	INTEGER NOT NULL,
+	`vintage`	INTEGER NOT NULL,
+	`abv`	REAL NOT NULL,
+	FOREIGN KEY(`winery`) REFERENCES `winery`(`id`)
+);
+DROP TABLE IF EXISTS `bottle`;
+CREATE TABLE IF NOT EXISTS `bottle` (
+	`id`	INTEGER PRIMARY KEY AUTOINCREMENT,
+	`label`	INTEGER NOT NULL,
+	`cost`	REAL NOT NULL,
+	`acquisition`	TEXT NOT NULL,
+	`consumption`	TEXT,
+	`hold_until`	INTEGER NOT NULL,
+	`boldness_coord`	INTEGER NOT NULL,
+	`price_coord`	INTEGER NOT NULL,
+	`hold_coord`	INTEGER NOT NULL,
+	FOREIGN KEY(`label`) REFERENCES `label`(`id`)
+);
+DROP TABLE IF EXISTS `blends`;
+CREATE TABLE IF NOT EXISTS `blends` (
+	`label`	INTEGER NOT NULL,
+	`varietal`	INTEGER NOT NULL,
+	`portion`	INTEGER NOT NULL,
+	FOREIGN KEY(`varietal`) REFERENCES `varietal`(`id`),
+	FOREIGN KEY(`label`) REFERENCES `label`(`id`)
+);
+COMMIT;
