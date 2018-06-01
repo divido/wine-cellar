@@ -25,7 +25,7 @@ for label in labelData:
 	                          "GROUP BY hold_until " +
 	                          "ORDER BY hold_until", (label[0],)).fetchall();
 
-	weightedBoldness = [b[1] * b[2] / 100.0 for b in blend]
+	weightedBoldness = sum([b[1] * b[2] / 100.0 for b in blend])
 
 	if len(blend) == 1:
 		varietalDescription = blend[0][0]
@@ -37,7 +37,7 @@ for label in labelData:
 			'labelDescription': str(label[1]) + ' ' + label[2] + ' ' + label[3],
 			'regionDescription': label[4] + ', ' + label[5],
 			'varietalDescription': varietalDescription,
-			'boldness': sum(weightedBoldness) / len(weightedBoldness),
+			'boldness': weightedBoldness,
 			'bottleCount': bottleCount
 		})
 
