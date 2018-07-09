@@ -35,9 +35,9 @@ CREATE TABLE IF NOT EXISTS `bottle` (
 	`acquisition`	TEXT NOT NULL,
 	`consumption`	TEXT,
 	`hold_until`	INTEGER NOT NULL,
-	`boldness_coord`	INTEGER NOT NULL,
-	`price_coord`	INTEGER NOT NULL,
-	`hold_coord`	INTEGER NOT NULL,
+	`boldness_coord`	INTEGER NULL,
+	`price_coord`	INTEGER NULL,
+	`hold_coord`	INTEGER NULL,
 	FOREIGN KEY(`label`) REFERENCES `label`(`id`)
 );
 DROP TABLE IF EXISTS `blends`;

@@ -71,6 +71,19 @@ def computeIdealCoord(layout, bottle):
 
 	return (boldCoord, costCoord, holdCoord)
 
+def computeDistance(ideal, coord):
+	return (abs(coord[0] - ideal[0]) * 5 +
+	        abs(coord[1] - ideal[1]) * 2 +
+	        abs(coord[2] - ideal[2]))
+
+def addExistingBottle(layout, bottle):
+	boldCoord = bottle['coord'][0]
+	costCoord = bottle['coord'][1]
+	holdCoord = bottle['coord'][2]
+
+	bottle['dist'] = computeDistance(bottle['coord'], computeIdealCoord(layout, bottle))
+	layout['bottles'][boldCoord][costCoord][holdCoord] = bottle
+
 def addBottle(layout, bottle, recurse=False):
 	ideal = computeIdealCoord(layout, bottle)
 	holdRange = range(0, 1) if bottle['holdUntil'] <= currentYear else range(1, NumHoldLevels)
@@ -86,9 +99,7 @@ def addBottle(layout, bottle, recurse=False):
 				current = layout['bottles'][b][c][h]
 
 				# Scale distance to prefer movement in hold or cost over boldness
-				dist = (abs(b - ideal[0]) * 5 +
-				        abs(c - ideal[1]) * 2 +
-				        abs(h - ideal[2]))
+				dist = computeDistance((b, c, h), ideal)
 				displacedDist = -math.inf
 
 				if current is not None:

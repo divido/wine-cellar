@@ -170,7 +170,7 @@ while True:
 			holdAmt = holdYears[holdYear]
 
 			for i in range(0, holdAmt):
-				sql.execute('INSERT INTO bottle VALUES (NULL, ?, ?, ?, NULL, ?, 0, 0, 0)', (label_id, cost, acquisition, holdYear))
+				sql.execute('INSERT INTO bottle VALUES (NULL, ?, ?, ?, NULL, ?, NULL, NULL, NULL)', (label_id, cost, acquisition, holdYear))
 
 		db.commit()
 		break
