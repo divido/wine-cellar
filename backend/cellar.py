@@ -19,4 +19,4 @@ class Cellar:
 		"""
 
 		q = db.session.query(Label).join(Bottle).filter(Bottle.consumption == None)
-		return [label for label in q.all()]
+		return q.all()
