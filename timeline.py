@@ -20,6 +20,7 @@ bottlesPerYear = round(bottleData[0] / numYears)
 labelData = sql.execute("SELECT label.id FROM label").fetchall()
 countByYear = {}
 
+totalBottles = 0
 currentYear = date.today().year
 maxYear = currentYear
 labels = []
@@ -38,12 +39,18 @@ for label in labelData:
 			countByYear[holdYear] = 0
 		countByYear[holdYear] += holdAmt
 
+		totalBottles += holdAmt
+
 # ----------------------------------------
 
 carryover = 0
-print('%sAverage Annual Consumption%s: %s%d bottles%s\n' % (
+print('%sAverage Annual Consumption%s: %s%d bottles%s' % (
 	Style.BRIGHT, Style.RESET_ALL,
 	Fore.BLUE, bottlesPerYear, Style.RESET_ALL))
+
+print('%sTotal Bottle Count%s: %s%d bottles%s\n' % (
+	Style.BRIGHT, Style.RESET_ALL,
+	Fore.BLUE, totalBottles, Style.RESET_ALL))
 
 for holdYear in range(currentYear, maxYear + 1):
 	holdAmt = countByYear[holdYear] if holdYear in countByYear else 0
