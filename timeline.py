@@ -4,16 +4,13 @@
 # excess or shortfall there will be in that year.
 
 # --------------------------------------------------------------------------------
+
 from colorama import Fore, Back, Style
+
 from backend.cellar import Cellar
+from scripts.styling import stylize
 
 cellar = Cellar()
-
-def stylize(fmt, value):
-	return fmt + value + Style.RESET_ALL
-
-# --------------------
-
 projection = cellar.consumptionProjection();
 
 def showField(name, amt):

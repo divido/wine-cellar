@@ -9,11 +9,9 @@ from colorama import Fore, Back, Style
 from datetime import date
 
 from backend.cellar import Cellar
+from scripts.styling import stylize
 
 cellar = Cellar()
-
-def stylize(fmt, value):
-	return fmt + value + Style.RESET_ALL
 
 currentYear = date.today().year
 for label in sorted(cellar.labels, key=lambda l: l.weightedBoldness, reverse=True):
