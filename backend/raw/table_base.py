@@ -21,9 +21,24 @@ def MakeParentChild(parentClass, childClass):
 
 class TableBase(db.Model):
 	"""Define the base functionality for the tables, including a simple primary
-	key. This class is mostly reserved for future use
+	key and method to convert into a simple dictionary class, suitable for JSON
+	conversion.
 	"""
 
 	__abstract__ = True
 
 	id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+
+	@property
+	def value(self):
+		"""This extracts the values of the object into a simple dictionary,
+		suitable for passing to jsonify. Values are selected based on __table__
+		object, which is created & managed by SQLAlchemy
+		"""
+
+		val = {}
+
+		for column in self.__table__.columns:
+			val[column.key] = getattr(self, column.key)
+
+		return val
