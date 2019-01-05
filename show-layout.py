@@ -1,66 +1,39 @@
 #!/usr/bin/env python3
 
+# This script shows the contents of the cellar, organized positionally. It can
+# be used to see where the various bottles should be placed.
+
+# --------------------------------------------------------------------------------
+
 import os
+import math
+
 from colorama import Fore, Back, Style
-from datetime import date
 
-from bottlePlacement import buildLayout, addExistingBottle, NumCostLevels, NumBoldLevels, NumHoldLevels
+from backend.raw import db
+from backend.cellar import Cellar
+from scripts.confirm import confirmAndCommit
 
-import sqlite3
+cellar = Cellar()
+layout = cellar.computeLayout()
 
-db = sqlite3.connect('cellar.db')
-sql = db.cursor()
+# Expand out the bins into real thresholds
+def expandBins(bins):
+	expanded = []
+	for threshold, width in bins:
+		for i in range(0, width):
+			expanded.append(threshold)
 
-labelData = sql.execute("SELECT label.id, label.vintage, winery.name, label.name FROM label " +
-                        "LEFT JOIN winery ON label.winery = winery.id " +
-                        "ORDER BY winery.name, label.name, label.vintage").fetchall()
+	return expanded
 
-currentYear = date.today().year
+boldnessThresholds = expandBins(layout.boldBins)
+costThresholds = expandBins(layout.costBins)
+holdThresholds = expandBins(layout.holdBins)
 
-# Probably don't need these, but generate them anyway..
-allCosts = []
-allBoldness = []
-allHold = []
+boldnessThresholds.reverse()
 
-bottles = []
-for label in labelData:
-	blend = sql.execute("SELECT varietal.name, varietal.boldness, portion FROM blends " +
-	                    "LEFT JOIN varietal ON blends.varietal = varietal.id " +
-	                    "WHERE blends.label = ? " +
-	                    "ORDER BY portion DESC", (label[0],)).fetchall()
-
-	bottleData = sql.execute("SELECT id, cost, hold_until, boldness_coord, price_coord, hold_coord FROM bottle " +
-	                         "WHERE label = ? " +
-	                         "AND boldness_coord IS NOT NULL " +
-	                         "AND price_coord IS NOT NULL " +
-	                         "AND hold_coord IS NOT NULL " +
-	                         "AND consumption IS NULL", (label[0],)).fetchall();
-
-	weightedBoldness = sum([b[1] * b[2] / 100.0 for b in blend])
-
-	for bottle in bottleData:
-		allCosts.append(bottle[1])
-		allBoldness.append(weightedBoldness)
-		if (bottle[2] > currentYear):
-			allHold.append(bottle[2])
-
-		bottles.append({
-			'id': bottle[0],
-			'holdUntil': bottle[2],
-			'cost': bottle[1],
-			'boldness': weightedBoldness,
-			'coord': (bottle[3], bottle[4], bottle[5]),
-			'labelDescription': str(label[1]) + ' ' + label[2] + ' ' + label[3]
-		})
-
-layout = buildLayout(allCosts, allBoldness, allHold)
-for bottle in bottles:
-	addExistingBottle(layout, bottle)
-
-# --------------------
-
-rows = NumCostLevels * (NumHoldLevels + 1)
-cols = NumBoldLevels + 2
+rows = len(costThresholds) * (len(holdThresholds) + 1)
+cols = len(boldnessThresholds) + 2
 outputTable = [["" for c in range(0, cols)] for r in range(0, rows)]
 outputStyle = [["" for c in range(0, cols)] for r in range(0, rows)]
 
@@ -70,43 +43,44 @@ outputTable[0][1] = "Hold"
 outputStyle[0][0] = Style.BRIGHT
 outputStyle[0][1] = Style.BRIGHT
 
-holdLabels = ["Drink Now"]
-# Label the Holds
-for idx, h in enumerate(layout['holdThresholds']):
-	if (idx == NumHoldLevels - 2):
-		holdLabels.append('Hold Longer')
-
-	else:
-		holdLabels.append('Hold < %d' % h)
+# Label the Holds, with special cases for first entry and infinity
+holdLabels = ['Hold < %d' % h if h != math.inf else 'Hold Longer' for h in holdThresholds]
+holdLabels[0] = "Drink Now"
 
 # Label the Boldness
-for idx, b in enumerate(layout['boldnessThresholds']):
-	outputTable[0][idx + 2] = ("Boldness > %.0f" % -b)
+boldnessLabels = ['Boldness < %d' % b if b != math.inf else 'Bolder' for b in boldnessThresholds]
+for idx, label in enumerate(boldnessLabels):
+	outputTable[0][idx + 2] = label
 	outputStyle[0][idx + 2] = Style.BRIGHT
 
 # Label the Costs
-for idx, c in enumerate(layout['costThresholds']):
-	outputTable[(NumCostLevels - idx - 1) * (NumHoldLevels + 1) + 1][0] = ("< $%.0f" % c)
-	outputStyle[(NumCostLevels - idx - 1) * (NumHoldLevels + 1) + 1][0] = Fore.GREEN
+costLabels = ['< $%.0f' % c if c != math.inf else '$ more' for c in costThresholds]
+for idx, label in enumerate(costLabels):
+	outputTable[(len(costThresholds) - idx - 1) * (len(holdThresholds) + 1) + 1][0] = label
+	outputStyle[(len(costThresholds) - idx - 1) * (len(holdThresholds) + 1) + 1][0] = Fore.GREEN
 
-	for hidx, h in enumerate(holdLabels):
-		outputTable[idx * (NumHoldLevels + 1) + NumHoldLevels - hidx][1] = h
-		outputStyle[idx * (NumHoldLevels + 1) + NumHoldLevels - hidx][1] = Fore.BLUE
+	for hidx, hlabel in enumerate(holdLabels):
+		outputTable[idx * (len(holdThresholds) + 1) + len(holdThresholds) - hidx][1] = hlabel
+		outputStyle[idx * (len(holdThresholds) + 1) + len(holdThresholds) - hidx][1] = Fore.BLUE
 
 # Add the Bottles
-for b in range(0, NumBoldLevels):
-	for c in range(0, NumCostLevels):
-		for h in range(0, NumHoldLevels):
-			rowCoord = (NumCostLevels - c - 1) * (NumHoldLevels + 1) + NumHoldLevels - h
+for b in range(0, len(boldnessThresholds)):
+	for c in range(0, len(costThresholds)):
+		for h in range(0, len(holdThresholds)):
+			rowCoord = (len(costThresholds) - c - 1) * (len(holdThresholds) + 1) + len(holdThresholds) - h
 			colCoord = b + 2
 
-			contents = layout['bottles'][b][c][h]
-			if contents is None:
-				outputTable[rowCoord][colCoord] = "        --------"
-				outputStyle[rowCoord][colCoord] = Style.DIM
+			outputTable[rowCoord][colCoord] = "        --------"
 
-			else:
-				outputTable[rowCoord][colCoord] = contents['labelDescription']
+for bottle in layout.bottles:
+	b = bottle.boldness_coord
+	c = bottle.price_coord
+	h = bottle.hold_coord
+
+	rowCoord = (len(costThresholds) - c - 1) * (len(holdThresholds) + 1) + len(holdThresholds) - h
+	colCoord = b + 2
+
+	outputTable[rowCoord][colCoord] = bottle.label.description
 
 # ----------------------------------------
 # Print the table
