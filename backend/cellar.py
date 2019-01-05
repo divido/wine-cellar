@@ -80,6 +80,40 @@ class Cellar:
 			'byYear': aggregated
 		}
 
+	def byRegion(self):
+		"""This returns a list of all bottles in the cellar, organized by
+		region. The returned list contains data for each country in descending
+		order of bottle counts. Each country object contains a similar array of
+		regions.
+		"""
+
+		regionBottles = {}
+		countryBottles = {}
+
+		q = db.session.query(Bottle).filter(Bottle.consumption == None)
+		for bottle in q.all():
+			region = bottle.label.winery.region
+			country = region.country
+
+			if country not in regionBottles:
+				regionBottles[country] = {}
+				countryBottles[country] = []
+
+			if region not in regionBottles[country]:
+				regionBottles[country][region] = []
+
+			regionBottles[country][region].append(bottle)
+			countryBottles[country].append(bottle)
+
+		return [{
+			'country': country,
+			'bottles': countryBottles[country],
+			'regions': [{
+				'region': region,
+				'bottles': regionBottles[country][region]
+			} for region in sorted(regionBottles[country], key=lambda r: len(regionBottles[country][r]), reverse=True)]
+		} for country in sorted(countryBottles, key=lambda c: len(countryBottles[c]), reverse=True)]
+
 	# --------------------------------------------------------------------------------
 
 	def clearBottlePositions(self):
