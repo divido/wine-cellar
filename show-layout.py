@@ -73,14 +73,13 @@ for b in range(0, len(boldnessThresholds)):
 			outputTable[rowCoord][colCoord] = "        --------"
 
 for bottle in layout.bottles:
-	b = bottle.boldness_coord
-	c = bottle.price_coord
-	h = bottle.hold_coord
+	coord = bottle.coordinate
+	if coord is not None:
+		(b, c, h) = coord
+		rowCoord = (len(costThresholds) - c - 1) * (len(holdThresholds) + 1) + len(holdThresholds) - h
+		colCoord = b + 2
 
-	rowCoord = (len(costThresholds) - c - 1) * (len(holdThresholds) + 1) + len(holdThresholds) - h
-	colCoord = b + 2
-
-	outputTable[rowCoord][colCoord] = bottle.label.description
+		outputTable[rowCoord][colCoord] = bottle.label.description
 
 # ----------------------------------------
 # Print the table
