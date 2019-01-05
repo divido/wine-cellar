@@ -1,176 +1,151 @@
 #!/usr/bin/env python3
 
-from fuzzyMatchTextEntry import textEntry
+# This script adds a new bottle to the cellar, leaving it unpositioned. Along
+# the way, it may also create new regions, varietals, blends, etc.
+
+# --------------------------------------------------------------------------------
+
 from colorama import Fore, Back, Style
 from datetime import date
 from dateutil.parser import parse
 
-import sqlite3
-
-db = sqlite3.connect('cellar.db')
-sql = db.cursor()
+from backend.raw import db
+from backend.repository import Repository
+from scripts.styling import stylize
+from scripts.fuzzyMatchTextEntry import textEntry
+from scripts.confirm import confirmAndCommit
 
 # --------------------------------------------------------------------------------
 # Data Input
 
-wineries = sql.execute('SELECT id, name FROM winery').fetchall()
-winery_idx, winery = textEntry("Winery> ", [w[1] for w in wineries])
-
-if winery_idx is None:
-	print('\n*** New Winery ***')
-	regions = sql.execute('SELECT id, name, country FROM region').fetchall()
-
+def getRegion(repo):
+	"""This prompts the user to select a region from the list of all known
+	regions, or enter a new one.
+	"""
 	while True:
-		region_idx, region = textEntry("Region> ", [(r[1] + ', ' + r[2]) for r in regions])
+		idx, region = textEntry("  Region> ", [region.description for region in repo.regions])
 
-		if len(region.split(',')) == 2:
-			break
+		if idx is not None:
+			return repo.regions[idx]
+
+		parts = region.split(',')
+		if len(parts) == 2:
+			return repo.addRegion(parts[0], parts[1])
 
 		print("Region should have exactly one comma: RegionName, Country")
-	labels = []
-	print()
 
-else:
-	winery_id = int(wineries[winery_idx][0])
-	labels = sql.execute('SELECT id, name, vintage FROM label WHERE winery=?', (winery_id,)).fetchall()
+# ----------------------------------------
 
-label_idx = None
-label = textEntry("Label> ", [l[1] for l in labels])[1]
-vintage = int(textEntry("Vintage> ", [])[1])
+def getWinery(repo):
+	"""This prompts the user to select a winery from the list of all current
+	wineries, or to enter a new one.
+	"""
 
-for idx, (labelId, labelName, labelVintage) in enumerate(labels):
-	if labelName == label and labelVintage == vintage:
-		label_idx = idx
+	idx, winery = textEntry("Winery> ", [winery.name for winery in repo.wineries])
+	if idx is not None:
+		return repo.wineries[idx]
 
-if label_idx is None:
-	print("\n*** New Label ***")
-	varietals = sql.execute('SELECT id, name, boldness FROM varietal').fetchall()
+	print('\n*** New Winery ***')
+	return repo.addWinery(winery, getRegion(repo))
 
-	labelVarietals = []
+# ----------------------------------------
+
+def getVarietalPortions(repo):
+	"""This prompts the user to create the appropriate blend of grape varietals"""
+
+	varietalPortions = []
 	remaining = 100
 	while remaining > 0:
-		varietal_idx, varietal = textEntry("Varietal> ", [v[1] for v in varietals])
+		idx, varietalName = textEntry("  Varietal> ", [varietal.name for varietal in repo.varietals])
 
-		if varietal_idx is None:
-			varietal_id = None
-			varietal_boldness = int(textEntry("Boldness> ", [])[1])
-
+		if idx is not None:
+			varietal = repo.varietals[idx]
 		else:
-			varietal_id = varietals[varietal_idx][0]
-			varietal_boldness = varietals[varietal_idx][2]
+			boldness = int(textEntry("    Boldness> ", [])[1])
+			varietal = repo.addVarietal(varietalName, boldness)
 
-		portionStr = textEntry("Percentage (* for remainder)> ", [])[1];
+		portionStr = textEntry("  Percentage (* for remainder)> ", [])[1];
 		if portionStr == '*':
 			portion = remaining
 
 		else:
 			portion = min(remaining, int(portionStr))
 
-		labelVarietals.append((varietal_id, varietal, varietal_boldness, portion))
+		varietalPortions.append((varietal, portion))
 		remaining -= portion;
-		print()
+		if remaining > 0: print()
 
-	labelVarietals.sort(key=lambda v: v[3], reverse=True)
+	return varietalPortions
 
-else:
-	label_id = labels[label_idx][0]
+# ----------------------------------------
 
-cost = float(textEntry("Cost> ", [])[1])
-abv = float(textEntry("ABV> ", [])[1])
-acquisition = parse(textEntry("Acquisition Date> ", [])[1]).strftime('%Y-%m-%d')
+def getLabel(repo, winery):
+	"""This prompts the user to select a label from the list of all those known
+	from the selected winery, or enter a new one.
+	"""
 
-print('\nSpace separated list of desired bottle ages, with multipliers, e.g.: 3*0 10 12 15')
-holdEncoding = textEntry("Hold Until Aged> ", [])[1]
+	labelName = textEntry("Label> ", [label.name for label in winery.labels])[1]
+	vintage = int(textEntry("Vintage> ", [])[1])
 
-currentYear = date.today().year
-holdYears = {}
-for part in holdEncoding.split():
-	subparts = part.split('*')
+	label = repo.findLabel(winery, labelName, vintage)
+	if label is not None:
+		return label
 
-	if len(subparts) == 1:
-		num = 1
-		age = int(subparts[0])
+	print('\n*** New Label ***')
+	abv = float(textEntry("  ABV> ", [])[1])
+	print()
 
-	else:
-		num = int(subparts[0])
-		age = int(subparts[1])
+	return repo.addLabel(labelName, vintage, abv, winery, getVarietalPortions(repo))
 
-	year = max(currentYear, vintage + age)
-	if year in holdYears:
-		holdYears[year] += num
+# ----------------------------------------
 
-	else:
-		holdYears[year] = num
+def addBottles(repo, label):
+	"""This prompts the user for details about the recently acquired bottles
+	that are associated with the supplied label.
+	"""
 
-# --------------------------------------------------------------------------------
-# Print Validation
+	cost = float(textEntry("Cost> ", [])[1])
+	acquisition = parse(textEntry("Acquisition Date> ", [])[1])
 
-print(Fore.BLUE)
+	print('\nSpace separated list of desired bottle ages, with multipliers, e.g.: 3*0 10 12 15')
+	holdEncoding = textEntry("Hold Until Aged> ", [])[1]
 
-if winery_idx is None:
-	if region_idx is None:
-		print("New Region: %s" % region)
-	print("New Winery: %s" % winery)
+	currentYear = date.today().year
+	holdYears = {}
+	for part in holdEncoding.split():
+		subparts = part.split('*')
 
-if label_idx is None:
-	blend = []
-	for varietalId, varietalName, varietalBoldness, varietalPortion in labelVarietals:
-		if varietalId is None:
-			print("New Varietal: %s, Boldness %d" % (varietalName, varietalBoldness))
-		blend.append("%d%% %s" % (varietalPortion, varietalName))
+		if len(subparts) == 1:
+			num = 1
+			age = int(subparts[0])
 
-	print("New Label: %d %s, (%s)" % (vintage, label, ', '.join(blend)))
+		else:
+			num = int(subparts[0])
+			age = int(subparts[1])
 
-print(Style.RESET_ALL, end='')
-print("%s%d %s %s, $%.2f, %.1f%% ABV acquired on %s%s" % (
-	Style.BRIGHT, vintage, winery, label, cost, abv, acquisition, Style.RESET_ALL
-))
+		year = max(currentYear, label.vintage + age)
+		if year in holdYears:
+			holdYears[year] += num
 
-print(Fore.GREEN)
-for holdYear in sorted(holdYears):
-	holdAmt = holdYears[holdYear]
-	print('%d bottle%s to %s' % (
-		holdAmt, '' if holdAmt == 1 else 's',
-		'drink now' if holdYear == currentYear else ('hold until %d' % holdYear)))
-print(Style.RESET_ALL, end='')
+		else:
+			holdYears[year] = num
+
+	for holdYear in sorted(holdYears):
+		holdAmt = holdYears[holdYear]
+
+		for i in range(0, holdAmt):
+			repo.addBottle(cost, acquisition, holdYear, label)
 
 # --------------------------------------------------------------------------------
-# Execution
 
-while True:
-	confirm = input("Commit [y/n]? ")
-	if confirm == 'n':
-		break
+repo = Repository()
+winery = getWinery(repo)
+print()
 
-	if confirm == 'y':
-		if winery_idx is None:
-			if region_idx is None:
-				regionName, country = region.split(',')
-				sql.execute('INSERT INTO region VALUES (NULL, ?, ?)', (regionName.strip(), country.strip()))
-				region_id = sql.lastrowid
+label = getLabel(repo, winery)
+print()
 
-			else:
-				region_id = regions[region_idx][0]
+addBottles(repo, label)
+print()
 
-			sql.execute('INSERT INTO winery VALUES (NULL, ?, ?)', (winery, region_id))
-			winery_id = sql.lastrowid
-
-		if label_idx is None:
-			sql.execute('INSERT INTO label VALUES (NULL, ?, ?, ?, ?)', (label, winery_id, vintage, abv))
-			label_id = sql.lastrowid
-
-			for varietalId, varietalName, varietalBoldness, varietalPortion in labelVarietals:
-				if varietalId is None:
-					sql.execute('INSERT INTO varietal VALUES (NULL, ?, ?)', (varietalName, varietalBoldness))
-					varietalId = sql.lastrowid
-
-				sql.execute('INSERT INTO blends VALUES (?, ?, ?)', (label_id, varietalId, varietalPortion))
-
-		for holdYear in sorted(holdYears):
-			holdAmt = holdYears[holdYear]
-
-			for i in range(0, holdAmt):
-				sql.execute('INSERT INTO bottle VALUES (NULL, ?, ?, ?, NULL, ?, NULL, NULL, NULL)', (label_id, cost, acquisition, holdYear))
-
-		db.commit()
-		break
+confirmAndCommit(db, repo.logger)
