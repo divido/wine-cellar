@@ -22,7 +22,7 @@ class DatabaseLogger:
 		separating line between each section (if content is actually printed).
 		"""
 
- 		if self._printClearedPositions() > 0:
+		if self._printClearedPositions() > 0:
 			print()
 
 		if self._printChangedPositions() > 0:
@@ -57,7 +57,7 @@ class DatabaseLogger:
 				print("%s %s %s" % (
 					stylize(Fore.BLUE, "Move"),
 					stylize(Style.BRIGHT, bottle.label.description),
-				    stylize(Fore.BLUE, "to (%d, %d, %d)" % (
+					stylize(Fore.BLUE, "to (%d, %d, %d)" % (
 						bottle.boldness_coord,
 						bottle.price_coord,
 						bottle.hold_coord))))
