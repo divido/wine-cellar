@@ -30,7 +30,7 @@ def getRegion(repo):
 
 		parts = region.split(',')
 		if len(parts) == 2:
-			return repo.addRegion(parts[0], parts[1])
+			return repo.addRegion(parts[0].strip(), parts[1].strip())
 
 		print("Region should have exactly one comma: RegionName, Country")
 
