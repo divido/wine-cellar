@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 
+# This script allows the user to find and mark a bottle as consumed
+
+# --------------------------------------------------------------------------------
+
 from colorama import Fore, Back, Style
 from dateutil.parser import parse
 
