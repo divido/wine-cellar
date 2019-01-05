@@ -2,6 +2,8 @@
 
 from .raw.data_model import Label, Bottle
 from .raw import db
+from .databaseLogger import DatabaseLogger
+from .dividoLayout import DividoLayout
 
 from sqlalchemy.sql import func
 from datetime import date
@@ -12,6 +14,8 @@ class Cellar:
 	"""This is the main organizer class. It manages operations that run on
 	bottles currently in possession (stored in the cellar).
 	"""
+
+	logger = DatabaseLogger()
 
 	@property
 	def labels(self):
@@ -75,3 +79,27 @@ class Cellar:
 			'totalBottleCount': totalBottleCount,
 			'byYear': aggregated
 		}
+
+	# --------------------------------------------------------------------------------
+
+	def clearBottlePositions(self):
+		"""This removes all bottles from the cellar, leaving them in an
+		unpositioned state. This is generally useful before repositioning them
+		to perform a full defragmentation operation.
+		"""
+
+		q = db.session.query(Bottle).filter(Bottle.consumption == None)
+		for bottle in q.all():
+			bottle.boldness_coord = None
+			bottle.price_coord = None
+			bottle.hold_coord = None
+			self.logger.changedBottlePosition(bottle)
+
+	def computeLayout(self):
+		"""This constructs a DividoLayout for the cellar, adding the bottles
+		that we know about. With this object, bottles can be repositioned or
+		placed new.
+		"""
+
+		q = db.session.query(Bottle).filter(Bottle.consumption == None)
+		return DividoLayout(q.all())
