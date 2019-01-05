@@ -14,6 +14,7 @@ class DatabaseLogger:
 	_newLabels = set()
 	_newVarietals = set()
 	_newBottles = set()
+	_bottleConsumptions = set()
 	_bottlePositions = set()
 
 	# --------------------------------------------------------------------------------
@@ -38,6 +39,10 @@ class DatabaseLogger:
 		"""This indicates a new bottle has been created"""
 		self._newBottles.add(bottle)
 
+	def consumedBottle(self, bottle):
+		"""This indicates the bottle has been consumed"""
+		self._bottleConsumptions.add(bottle)
+
 	def changedBottlePosition(self, bottle):
 		"""This indicates the bottle has changed position"""
 		self._bottlePositions.add(bottle)
@@ -55,6 +60,7 @@ class DatabaseLogger:
 		if self._printNewLabels() > 0: print()
 		if self._printNewVarietals() > 0: print()
 		if self._printNewBottles() > 0: print()
+		if self._printBottleConsumptions() > 0: print()
 		if self._printChangedPositions() > 0: print()
 
 	# --------------------------------------------------------------------------------
@@ -73,23 +79,6 @@ class DatabaseLogger:
 				print("%s %s" % (
 					stylize(Fore.RED, "Clear position for"),
 					stylize(Style.BRIGHT, bottle.label.description)))
-
-		return n
-
-	def _printChangedPositions(self):
-		"""Print all bottles that have had their positions changed."""
-
-		n = 0
-		for bottle in self._bottlePositions:
-			if bottle.boldness_coord != None or bottle.price_coord != None or bottle.hold_coord != None:
-				n += 1
-				print("%s %s %s" % (
-					stylize(Fore.BLUE, "Move"),
-					stylize(Style.BRIGHT, bottle.label.description),
-					stylize(Fore.BLUE, "to (%d, %d, %d)" % (
-						bottle.boldness_coord,
-						bottle.price_coord,
-						bottle.hold_coord))))
 
 		return n
 
@@ -191,3 +180,37 @@ class DatabaseLogger:
 						"Hold Until %d" % holdYear))))
 
 		return len(self._newBottles)
+
+	def _printBottleConsumptions(self):
+		"""Print all bottles that have been consumed"""
+
+		for bottle in self._bottleConsumptions:
+			print("%s %s, %s %s, %s %s" % (
+				stylize(Fore.RED, "Consumed"),
+				stylize(Style.BRIGHT, bottle.label.description),
+				stylize(Fore.RED, "stored at"),
+				stylize(Style.BRIGHT, "(%d, %d, %d)" % (
+					bottle.boldness_coord,
+					bottle.price_coord,
+					bottle.hold_coord)),
+				stylize(Fore.RED, "on"),
+				stylize(Style.BRIGHT, bottle.consumption.strftime('%Y-%m-%d'))))
+		return len(self._bottleConsumptions)
+
+	def _printChangedPositions(self):
+		"""Print all bottles that have had their positions changed."""
+
+		n = 0
+		for bottle in self._bottlePositions:
+			if bottle.boldness_coord != None or bottle.price_coord != None or bottle.hold_coord != None:
+				n += 1
+				print("%s %s %s" % (
+					stylize(Fore.BLUE, "Move"),
+					stylize(Style.BRIGHT, bottle.label.description),
+					stylize(Fore.BLUE, "to (%d, %d, %d)" % (
+						bottle.boldness_coord,
+						bottle.price_coord,
+						bottle.hold_coord))))
+
+		return n
+

@@ -26,6 +26,13 @@ class Cellar:
 		q = db.session.query(Label).join(Bottle).filter(Bottle.consumption == None)
 		return q.all()
 
+	@property
+	def bottles(self):
+		"""The returns all bottles in the cellar"""
+
+		q = db.session.query(Bottle).filter(Bottle.consumption == None)
+		return q.all()
+
 	# --------------------------------------------------------------------------------
 
 	def consumptionProjection(self):
@@ -113,6 +120,13 @@ class Cellar:
 				'bottles': regionBottles[country][region]
 			} for region in sorted(regionBottles[country], key=lambda r: len(regionBottles[country][r]), reverse=True)]
 		} for country in sorted(countryBottles, key=lambda c: len(countryBottles[c]), reverse=True)]
+
+	# --------------------------------------------------------------------------------
+
+	def consume(self, bottle, consumption):
+		"""This marks a bottle as consumed on the supplied date"""
+		bottle.consumption = consumption
+		self.logger.consumedBottle(bottle)
 
 	# --------------------------------------------------------------------------------
 
