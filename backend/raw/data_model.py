@@ -171,4 +171,18 @@ class Bottle(TableBase):
 	price_coord = db.Column(db.Integer)
 	hold_coord = db.Column(db.Integer)
 
+	@property
+	def coordinate(self):
+		"""This returns a simple triplet of the bottle's coordinates"""
+		if self.boldness_coord is None and self.price_coord is None and self.hold_coord is None:
+			return None
+
+		return (self.boldness_coord, self.price_coord, self.hold_coord)
+
+	def __lt__(self, other):
+		"""This comparator sorts bottles by cost, keeping like-bottles together"""
+		selfAttrs = (self.cost, self.label.winery.name, self.label.name, self.label.vintage)
+		otherAttrs = (other.cost, other.label.winery.name, other.label.name, other.label.vintage)
+		return selfAttrs < otherAttrs
+
 MakeParentChild(Label, Bottle)
