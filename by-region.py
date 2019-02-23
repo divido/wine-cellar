@@ -11,17 +11,46 @@ from backend.cellar import Cellar
 from scripts.styling import stylize
 
 cellar = Cellar()
+
+regionWidth = 0
+longestHold = 0
+currentYear = date.today().year
+
+for bottle in cellar.bottles:
+	region = bottle.label.winery.region
+	regionWidth = max(regionWidth, len(region.name))
+	longestHold = max(longestHold, bottle.hold_until)
+
+firstRegion = True
 for data in cellar.byRegion():
 	print('%s %s' % (
-		stylize(Fore.GREEN, "%2d bottle%s" % (
+		stylize(Fore.GREEN, '%2d bottle%s' % (
 			len(data['bottles']),
-			" " if len(data['bottles']) == 1 else "s")),
-		stylize(Style.BRIGHT, data['country'])))
+			' ' if len(data['bottles']) == 1 else 's')),
+		stylize(Style.BRIGHT, '%-*s' % (regionWidth + 8, data['country']))),
+		end = '')
 
+	if firstRegion:
+		for year in range(currentYear, longestHold + 1):
+			print(stylize(Style.BRIGHT, '%d ' % year), end='')
+
+		firstRegion = False
+
+	print()
 	for region in data['regions']:
 		print('%8d bottle%s %s' % (
 			len(region['bottles']),
-			" " if len(region['bottles']) == 1 else "s",
-			stylize(Fore.BLUE, region['region'].name)))
+			' ' if len(region['bottles']) == 1 else 's',
+			stylize(Fore.BLUE, '%-*s' % (regionWidth, region['region'].name))),
+			end = '')
 
+		inventoryByYear = region['region'].inventoryByYear();
+		for year in range(currentYear, longestHold + 1):
+			if year in inventoryByYear and inventoryByYear[year] > 0:
+				print(stylize(Fore.GREEN, ' %4d' % inventoryByYear[year]), end = '')
+
+			else:
+				print(' %4s' % '.', end = '')
+
+		print()
 	print()

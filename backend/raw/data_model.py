@@ -26,6 +26,32 @@ class Region(TableBase):
 		"""
 		return "%s, %s" % (self.name, self.country)
 
+	def inventoryByYear(self):
+		"""This computes the number of bottles of from this region that are
+		owned (i.e., not consumed). The results are grouped by hold year and
+		returned as a dictionary, with the keys of the dictionaries being the
+		year and the values being the counts. All hold years earlier than the
+		current year will be considered to be the current year (i.e., "Drink
+		Now"). This effectively sums the inventoryByYear results from all labels
+		from wineries within this region.
+		"""
+
+		currentYear = date.today().year
+		inventory = {}
+
+		for winery in self.wineries:
+			for label in winery.labels:
+				labelByYear = label.inventoryByYear()
+
+				for holdYear in labelByYear:
+					if holdYear not in inventory:
+						inventory[holdYear] = labelByYear[holdYear]
+
+					else:
+						inventory[holdYear] += labelByYear[holdYear]
+
+		return inventory
+
 # ----------------------------------------
 
 class Winery(TableBase):
