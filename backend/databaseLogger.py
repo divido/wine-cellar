@@ -54,14 +54,14 @@ class DatabaseLogger:
 		separating line between each section (if content is actually printed).
 		"""
 
-		if self._printClearedPositions() > 0: print()
-		if self._printNewRegions() > 0: print()
-		if self._printNewWineries() > 0: print()
-		if self._printNewLabels() > 0: print()
-		if self._printNewVarietals() > 0: print()
-		if self._printNewBottles() > 0: print()
-		if self._printBottleConsumptions() > 0: print()
-		if self._printChangedPositions() > 0: print()
+		self._printClearedPositions()
+		self._printNewRegions()
+		self._printNewWineries()
+		self._printNewLabels()
+		self._printNewVarietals()
+		self._printNewBottles()
+		self._printBottleConsumptions()
+		self._printChangedPositions()
 
 	# --------------------------------------------------------------------------------
 
@@ -72,15 +72,11 @@ class DatabaseLogger:
 		so this output is highlighted in red.
 		"""
 
-		n = 0
 		for bottle in self._bottlePositions:
 			if bottle.boldness_coord == None and bottle.price_coord == None and bottle.hold_coord == None:
-				n += 1
 				print("%s %s" % (
 					stylize(Fore.RED, "Clear position for"),
 					stylize(Style.BRIGHT, bottle.label.description)))
-
-		return n
 
 	def _printNewRegions(self):
 		"""Print all regions that have been added this session"""
@@ -89,8 +85,6 @@ class DatabaseLogger:
 			print("%s %s" % (
 				stylize(Fore.GREEN, "Create New Region:"),
 				stylize(Style.BRIGHT, region.description)))
-
-		return len(self._newRegions)
 
 	def _printNewWineries(self):
 		"""Print all wineries that have been added this session"""
@@ -101,19 +95,15 @@ class DatabaseLogger:
 				stylize(Style.BRIGHT, winery.name),
 				stylize(Style.BRIGHT, winery.region.description)))
 
-		return len(self._newWineries)
-
 	def _printNewLabels(self):
 		"""Print all labels that have been added this session"""
 
 		for label in self._newLabels:
-			print("%s %s, %s, %s %%abv" % (
+			print("%s %s, %s, %s%% abv" % (
 				stylize(Fore.GREEN, "Create New Label:"),
 				stylize(Style.BRIGHT, label.description),
 				stylize(Style.BRIGHT, label.varietalDescription),
 				stylize(Style.BRIGHT, ("%.1f" % label.abv))))
-
-		return len(self._newLabels)
 
 	def _printNewVarietals(self):
 		"""Print all varietals that have been added this session"""
@@ -123,8 +113,6 @@ class DatabaseLogger:
 				stylize(Fore.GREEN, "Create New Varietal:"),
 				stylize(Style.BRIGHT, varietal.name),
 				stylize(Style.BRIGHT, str(varietal.boldness))))
-
-		return len(self._newVarietals)
 
 	def _splitByLabel(self, bottles):
 		"""This is used by _printNewBottles to divide the incoming bottles by
@@ -179,8 +167,6 @@ class DatabaseLogger:
 					"Drink Now" if holdYear == currentYear else (
 						"Hold Until %d" % holdYear))))
 
-		return len(self._newBottles)
-
 	def _printBottleConsumptions(self):
 		"""Print all bottles that have been consumed"""
 
@@ -195,15 +181,12 @@ class DatabaseLogger:
 					bottle.hold_coord)),
 				stylize(Fore.RED, "on"),
 				stylize(Style.BRIGHT, bottle.consumption.strftime('%Y-%m-%d'))))
-		return len(self._bottleConsumptions)
 
 	def _printChangedPositions(self):
 		"""Print all bottles that have had their positions changed."""
 
-		n = 0
-		for bottle in self._bottlePositions:
+		for bottle in sorted(self._bottlePositions, key=lambda b: b.coordinate):
 			if bottle.boldness_coord != None or bottle.price_coord != None or bottle.hold_coord != None:
-				n += 1
 				print("%s %s %s" % (
 					stylize(Fore.BLUE, "Move"),
 					stylize(Style.BRIGHT, bottle.label.description),
@@ -211,6 +194,3 @@ class DatabaseLogger:
 						bottle.boldness_coord,
 						bottle.price_coord,
 						bottle.hold_coord))))
-
-		return n
-
