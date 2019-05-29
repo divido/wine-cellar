@@ -73,15 +73,16 @@ class Cellar:
 
 		q = db.session.query(
 			func.count(Bottle.consumption),
-			func.max(Bottle.consumption),
 			func.min(Bottle.consumption))
-		totalConsumption, mostRecent, first = q.one()
-		numYears = (mostRecent - first).days / 365;
+		totalConsumption, first = q.one()
+
+		now = date.today()
+		numYears = (now - first).days / 365;
 
 		averageAnnualConsumption = totalConsumption / numYears
 		totalBottleCount = 0
 
-		currentYear = date.today().year
+		currentYear = now.year
 		aggregated = {}
 
 		# Little helper, notably fills in gaps with an entry (without extrapolating)
