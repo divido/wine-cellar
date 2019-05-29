@@ -35,6 +35,34 @@ class Cellar:
 
 	# --------------------------------------------------------------------------------
 
+	def consumptionByMonth(self):
+		"""This computes a count of bottle consumption to date. The returned
+		object is indexed first by year, then by month, and returns a count of
+		consumed bottles. Months are 1-based
+		"""
+
+		q = db.session.query(func.min(Bottle.consumption))
+		first = q.one()[0]
+
+		currentYear = date.today().year
+		currentMonth = date.today().month
+		consumption = {
+			first.year: {n: 0 for n in range(first.month, 13)},
+			currentYear: {n: 0 for n in range(1, currentMonth + 1)}
+		}
+
+		q = db.session.query(Bottle).filter(Bottle.consumption != None)
+		for bottle in q.all():
+			year = bottle.consumption.year
+			month = bottle.consumption.month
+
+			if year not in consumption:
+				consumption[year] = {n: 0 for n in range(1, 13)}
+
+			consumption[year][month] += 1
+
+		return consumption
+
 	def consumptionProjection(self):
 		"""This computes a projection of the cellar bottles over time. The
 		resulting dictionary object contains an entry for the average annual
