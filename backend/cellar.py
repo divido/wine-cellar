@@ -47,8 +47,8 @@ class Cellar:
 		currentYear = date.today().year
 		currentMonth = date.today().month
 		consumption = {
-			first.year: {n: 0 for n in range(first.month, 13)},
-			currentYear: {n: 0 for n in range(1, currentMonth + 1)}
+			first.year: {n: [] for n in range(first.month, 13)},
+			currentYear: {n: [] for n in range(1, currentMonth + 1)}
 		}
 
 		q = db.session.query(Bottle).filter(Bottle.consumption != None)
@@ -57,9 +57,9 @@ class Cellar:
 			month = bottle.consumption.month
 
 			if year not in consumption:
-				consumption[year] = {n: 0 for n in range(1, 13)}
+				consumption[year] = {n: [] for n in range(1, 13)}
 
-			consumption[year][month] += 1
+			consumption[year][month].append(bottle)
 
 		return consumption
 
