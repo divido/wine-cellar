@@ -51,7 +51,7 @@ class Cellar:
 			currentYear: {n: [] for n in range(1, currentMonth + 1)}
 		}
 
-		q = db.session.query(Bottle).filter(Bottle.consumption != None)
+		q = db.session.query(Bottle).filter(Bottle.consumption != None).order_by(Bottle.consumption)
 		for bottle in q.all():
 			year = bottle.consumption.year
 			month = bottle.consumption.month
