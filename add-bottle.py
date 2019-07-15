@@ -8,6 +8,7 @@
 from colorama import Fore, Back, Style
 from datetime import date
 from dateutil.parser import parse
+from operator import attrgetter
 
 from backend.raw import db
 from backend.repository import Repository
@@ -61,7 +62,19 @@ def getVarietalPortions(repo):
 		if idx is not None:
 			varietal = repo.varietals[idx]
 		else:
-			boldness = int(textEntry("    Boldness> ", [])[1])
+			boldness = None
+			while boldness is None:
+				boldnessStr = textEntry("    Boldness (? to list current)> ", [])[1];
+
+				if boldnessStr == '?':
+					for varietal in sorted(repo.varietals, key=attrgetter('boldness'), reverse=True):
+						print('      %s %s' % (
+							stylize(Fore.BLUE, '%2d' % varietal.boldness),
+							stylize(Style.BRIGHT, '%s' % varietal.name)))
+
+				else:
+					boldness = int(boldnessStr)
+
 			varietal = repo.addVarietal(varietalName, boldness)
 
 		portionStr = textEntry("  Percentage (* for remainder)> ", [])[1];
