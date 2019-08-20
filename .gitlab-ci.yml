@@ -21,8 +21,4 @@ before_script:
 
 test:
   script:
-    - python inventory.py
-
-run:
-  script:
-    - python timeline.py
+    - python -m pytest
