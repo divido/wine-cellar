@@ -1,0 +1,4 @@
+image: wine-cellar:latest
+
+build:
+- docker run
