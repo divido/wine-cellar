@@ -1,4 +1,4 @@
 build:
-	image: wine-cellar:latest
-	script:
-	- python inventory.py
+  image: wine-cellar:latest
+  script:
+  - python inventory.py
