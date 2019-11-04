@@ -118,6 +118,14 @@ class Label(TableBase):
 
 		return sum([blend.varietal.boldness * blend.portion / 100.0 for blend in self.blends])
 
+	@property
+	def numberConsumed(self):
+		"""This returns the number of bottles of this label that have been
+		consumed.
+		"""
+
+		return len([bottle for bottle in self.bottles if bottle.consumption != None])
+
 	def inventoryByYear(self):
 		"""This computes the number of bottles of this label that are owned
 		(i.e., not consumed). The results are grouped by hold year and returned
