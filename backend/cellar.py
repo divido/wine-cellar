@@ -33,6 +33,27 @@ class Cellar:
 		q = db.session.query(Bottle).filter(Bottle.consumption == None)
 		return q.all()
 
+	@property
+	def bottlesByYear(self):
+		"""This returns all bottles in the cellar that are owned (i.e., not
+		consumed). The results are grouped by hold year and returned as a
+		dictionary, with the keys of the dictionaries being the year and the
+		values being an array of bottles. All hold years earlier than the
+		current year will be considered to be the current year (i.e., "Drink
+		Now").  """
+
+		currentYear = date.today().year
+		inventory = {}
+
+		for bottle in self.bottles:
+			holdYear = max(currentYear, bottle.hold_until)
+			if holdYear not in inventory:
+				inventory[holdYear] = []
+
+			inventory[holdYear].append(bottle)
+
+		return inventory
+
 	# --------------------------------------------------------------------------------
 
 	def consumptionByMonth(self):

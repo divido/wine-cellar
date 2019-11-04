@@ -6,6 +6,7 @@
 
 from colorama import Fore, Back, Style
 from dateutil.parser import parse
+from datetime import date
 
 from backend.raw import db
 from backend.cellar import Cellar
@@ -13,8 +14,10 @@ from scripts.styling import stylize
 from scripts.fuzzyMatchTextEntry import textEntry
 from scripts.confirm import confirmAndCommit
 
+currentYear = date.today().year
+
 cellar = Cellar()
-bottles = cellar.bottles
+bottles = cellar.bottlesByYear[currentYear]
 while True:
 	idx, name = textEntry("Bottle> ", [bottle.label.description for bottle in bottles])
 
