@@ -28,11 +28,10 @@ def expandBins(bins):
 
 boldnessThresholds = expandBins(layout.boldBins)
 costThresholds = expandBins(layout.costBins)
-holdThresholds = expandBins(layout.holdBins)
 
 boldnessThresholds.reverse()
 
-rows = len(costThresholds) * (len(holdThresholds) + 1)
+rows = len(costThresholds) * (len(layout.holdCoords) + len(layout.drinkCoords) + 1)
 cols = len(boldnessThresholds) + 2
 outputTable = [["" for c in range(0, cols)] for r in range(0, rows)]
 outputStyle = [["" for c in range(0, cols)] for r in range(0, rows)]
@@ -43,9 +42,19 @@ outputTable[0][1] = "Hold"
 outputStyle[0][0] = Style.BRIGHT
 outputStyle[0][1] = Style.BRIGHT
 
-# Label the Holds, with special cases for first entry and infinity
-holdLabels = ['Hold < %d' % h if h != math.inf else 'Hold Longer' for h in holdThresholds]
-holdLabels[0] = "Drink Now"
+# Label the Holds
+holdLabels = [];
+
+def addLabel(idx, lbl):
+	while len(holdLabels) <= idx:
+		holdLabels.append("")
+	holdLabels[idx] = lbl;
+
+for idx in layout.drinkCoords:
+	addLabel(idx, "Drink Now");
+
+for idx in layout.holdCoords:
+	addLabel(idx, "Hold");
 
 # Label the Boldness
 boldnessLabels = ['Boldness < %d' % b if b != math.inf else 'Bolder' for b in boldnessThresholds]
@@ -56,18 +65,18 @@ for idx, label in enumerate(boldnessLabels):
 # Label the Costs
 costLabels = ['< $%.0f' % c if c != math.inf else '$ more' for c in costThresholds]
 for idx, label in enumerate(costLabels):
-	outputTable[(len(costThresholds) - idx - 1) * (len(holdThresholds) + 1) + 1][0] = label
-	outputStyle[(len(costThresholds) - idx - 1) * (len(holdThresholds) + 1) + 1][0] = Fore.GREEN
+	outputTable[(len(costThresholds) - idx - 1) * (len(holdLabels) + 1) + 1][0] = label
+	outputStyle[(len(costThresholds) - idx - 1) * (len(holdLabels) + 1) + 1][0] = Fore.GREEN
 
 	for hidx, hlabel in enumerate(holdLabels):
-		outputTable[idx * (len(holdThresholds) + 1) + len(holdThresholds) - hidx][1] = hlabel
-		outputStyle[idx * (len(holdThresholds) + 1) + len(holdThresholds) - hidx][1] = Fore.BLUE
+		outputTable[idx * (len(holdLabels) + 1) + len(holdLabels) - hidx][1] = hlabel
+		outputStyle[idx * (len(holdLabels) + 1) + len(holdLabels) - hidx][1] = Fore.BLUE
 
 # Add the Bottles
 for b in range(0, len(boldnessThresholds)):
 	for c in range(0, len(costThresholds)):
-		for h in range(0, len(holdThresholds)):
-			rowCoord = (len(costThresholds) - c - 1) * (len(holdThresholds) + 1) + len(holdThresholds) - h
+		for h in range(0, len(holdLabels)):
+			rowCoord = (len(costThresholds) - c - 1) * (len(holdLabels) + 1) + len(holdLabels) - h
 			colCoord = b + 2
 
 			outputTable[rowCoord][colCoord] = "        --------"
@@ -76,7 +85,7 @@ for bottle in layout.bottles:
 	coord = bottle.coordinate
 	if coord is not None:
 		(b, c, h) = coord
-		rowCoord = (len(costThresholds) - c - 1) * (len(holdThresholds) + 1) + len(holdThresholds) - h
+		rowCoord = (len(costThresholds) - c - 1) * (len(holdLabels) + 1) + len(holdLabels) - h
 		colCoord = b + 2
 
 		outputTable[rowCoord][colCoord] = bottle.label.description

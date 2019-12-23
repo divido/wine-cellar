@@ -13,21 +13,29 @@ class BottleStack:
 	they all have the same hold coordinate and boldness coordinate. It manages
 	the sorting of the bottles within to keep the price coordinates as accurate
 	as possible and like-bottles together.
+
+	A BottleStack can be extended to include multiple boldness or hold
+	coordinates, creating a stack that allows storage of multiple bottles per
+	cost level. When positioning bottles, the boldness / hold coordinates are
+	allocated accordingly.
 	"""
 
-	def __init__(self, boldnessCoords, holdCoord):
+	def __init__(self, boldnessCoords, holdCoords):
 		"""Build the stack, positioned at the supplied coordinates. It is
-		possible for one "stack" to span multiple (physical) boldness
+		possible for one "stack" to span multiple (physical) boldness or hold
 		coordinates, if enough bottles have the same boldness score to merit
-		multiple stacks. In these cases, the bottles will be balanced between
-		all boldness values evenly.
+		multiple stacks. In the case of "Hold" stacks, all but one of the hold
+		coordinates will be used, since only the Hold vs. Drink Now attribute
+		matters. In these cases, the bottles will be balanced between all values
+		evenly during positioning.
 		"""
 
 		self.positioned = []
 		self.unpositioned = SortedList()
 		self.width = len(boldnessCoords)
+		self.depth = len(holdCoords)
 		self.boldnessCoords = boldnessCoords
-		self.holdCoord = holdCoord
+		self.holdCoords = holdCoords
 
 	def addPositioned(self, bottle):
 		"""Add a bottle to the stack that is already positioned (and therefore
@@ -49,7 +57,7 @@ class BottleStack:
 		positioned bottles.
 		"""
 
-		available = (NumCostLevels - costCoord) * self.width
+		available = (NumCostLevels - costCoord) * self.width * self.depth
 		used = 0
 		for bottle in self.positioned:
 			if bottle.price_coord >= costCoord: used += 1
@@ -70,8 +78,8 @@ class BottleStack:
 			raise RuntimeError('Not enough open slots for all unpositioned bottles.')
 
 		# Maintaining the number of slots above is important to know if we need
-        # to start putting bottles in cheaper slots just to fit. Keeping the
-        # at-or-above lets us compute the space at the level.
+		# to start putting bottles in cheaper slots just to fit. Keeping the
+		# at-or-above lets us compute the space at the level.
 		costCoord = 0
 		openAtOrAbove = self.openSlotsAtOrAbove(costCoord)
 		openAbove = self.openSlotsAtOrAbove(costCoord + 1)
@@ -87,8 +95,8 @@ class BottleStack:
 
 			else:
 				# Once we no longer want to place bottle here, move up. Note
-                # that the computation of the at-or-above is fairly simple since
-                # we already know "above" and are moving up :)
+				# that the computation of the at-or-above is fairly simple since
+				# we already know "above" and are moving up :)
 				costCoord += 1
 				openAtOrAbove = openAbove
 				openAbove = self.openSlotsAtOrAbove(costCoord + 1)
@@ -103,24 +111,47 @@ class BottleStack:
 		computed to be whichever column has the least bottles thus far.
 		"""
 
-		boldCoordUsage = [0 for b in self.boldnessCoords]
-		for bottle in self.positioned:
-			boldCoordUsage[self.boldnessCoords.index(bottle.boldness_coord)] += 1
+		# Prefer the furthest back (largest) hold coordinate
+		for holdCoord in reversed(self.holdCoords):
+			preferredBoldCoord = None
+			usageForPreferred = math.inf
 
-		leastUsed = 0
-		for idx in range(1, len(boldCoordUsage)):
-			if boldCoordUsage[idx] < boldCoordUsage[leastUsed]:
-				leastUsed = idx
+			# Find all candidate boldness coordinates at this hold coordinate,
+			# including the usage of that coordinate up and down the stack (to
+			# create a visual balance among spanned stacks)
+			for boldCoord in self.boldnessCoords:
+				usage = 0;
+				slotAvailable = True;
 
-		bottle = self.unpositioned[0]
+				for bottle in self.positioned:
+					if bottle.boldness_coord == boldCoord:
+						usage += 1
 
-		bottle.boldness_coord = self.boldnessCoords[leastUsed]
-		bottle.price_coord = costCoord
-		bottle.hold_coord = self.holdCoord
-		logger.changedBottlePosition(bottle)
+						if bottle.hold_coord == holdCoord and bottle.price_coord == costCoord:
+							slotAvailable = False
 
-		self.unpositioned.remove(bottle)
-		self.positioned.append(bottle)
+				if slotAvailable and (usage < usageForPreferred):
+					preferredBoldCoord = boldCoord
+					usageForPreferred = usage
+
+			# Now, if we have a candidate, find the lowest usage and apply it
+			# If we do not, then loop to the next hold coordinate.
+			if preferredBoldCoord is not None:
+				bottle = self.unpositioned[0]
+
+				bottle.boldness_coord = preferredBoldCoord
+				bottle.price_coord = costCoord
+				bottle.hold_coord = holdCoord
+				logger.changedBottlePosition(bottle)
+
+				self.unpositioned.remove(bottle)
+				self.positioned.append(bottle)
+
+				return
+
+		# This method should only be called if there is space, so we shouldn't
+		# be able to exit from the holdCoord loop without finding something
+		raise RuntimeError("Couldn't place bottle because there was no space")
 
 # --------------------------------------------------------------------------------
 
@@ -145,30 +176,30 @@ class DividoLayout:
 			bottle.cost for bottle in bottles
 		], NumCostLevels, False)
 
-		# Note we force the first bin to "< currentYear + " (aka "<= currentYear")
-		self.holdBins = self._createBins([
-			bottle.hold_until for bottle in bottles if bottle.hold_until > currentYear
-		], NumHoldLevels - 1, False)
-		self.holdBins.insert(0, (currentYear + 1, 1))
+		self.drinkCoords = [0]
+		self.holdCoords = [idx for idx in range(1, NumHoldLevels)]
+
+		# --------------------
 
 		self.stacks = []
 		for boldIdx in range(0, len(self.boldBins)):
 			boldnessCoords = self._boldnessCoordsForBin(boldIdx)
-			self.stacks.append([])
-
-			for holdIdx in range(0, len(self.holdBins)):
-				self.stacks[boldIdx].append(BottleStack(boldnessCoords, holdIdx))
+			self.stacks.append([
+				BottleStack(boldnessCoords, self.drinkCoords),
+				BottleStack(boldnessCoords, self.holdCoords)
+			])
 
 		# --------------------
 
 		for bottle in bottles:
 			if bottle.coordinate is not None:
 				boldBin = self._boldnessBinIdx(bottle.boldness_coord)
-				self.stacks[boldBin][bottle.hold_coord].addPositioned(bottle)
+				holdBin = (0 if bottle.hold_coord == 0 else 1)
+				self.stacks[boldBin][holdBin].addPositioned(bottle)
 
 			else:
 				boldBin = self._findBin(bottle.label.weightedBoldness, self.boldBins)
-				holdBin = self._findBin(bottle.hold_until, self.holdBins)
+				holdBin = (0 if bottle.hold_until <= currentYear else 1)
 				self.stacks[boldBin][holdBin].addUnpositioned(bottle)
 
 	# ----------------------------------------
