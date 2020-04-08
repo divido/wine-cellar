@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from .raw.data_model import Label, Bottle
+from .raw.data_model import Label, Bottle, Region
 from .raw import db
 from .databaseLogger import DatabaseLogger
 from .dividoLayout import DividoLayout
@@ -147,17 +147,20 @@ class Cellar:
 		regionBottles = {}
 		countryBottles = {}
 
-		q = db.session.query(Bottle).filter(Bottle.consumption == None)
-		for bottle in q.all():
-			region = bottle.label.winery.region
+		q = db.session.query(Region)
+		for region in q.all():
 			country = region.country
-
 			if country not in regionBottles:
 				regionBottles[country] = {}
 				countryBottles[country] = []
 
-			if region not in regionBottles[country]:
-				regionBottles[country][region] = []
+			regionBottles[country][region] = []
+			countryBottles[country] = []
+
+		q = db.session.query(Bottle).filter(Bottle.consumption == None)
+		for bottle in q.all():
+			region = bottle.label.winery.region
+			country = region.country
 
 			regionBottles[country][region].append(bottle)
 			countryBottles[country].append(bottle)
