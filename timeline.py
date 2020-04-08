@@ -9,18 +9,30 @@ from colorama import Fore, Back, Style
 
 from backend.cellar import Cellar
 from scripts.styling import stylize
+from scripts.options import parseArguments
 
+[showCosts] = parseArguments([('c', 'cost', 'Also show total inventory value')])
 cellar = Cellar()
 projection = cellar.consumptionProjection();
 
-def showField(name, amt):
+def showBottleCount(name, amt):
 	print('%s: %s' % (
 		stylize(Style.BRIGHT, name),
 		stylize(Fore.BLUE, '%d bottle%s' % (amt, '' if amt == 1 else 's'))))
 
-showField('Average Annual Consumption', projection['averageAnnualConsumption'])
-showField('Total Bottle Count', projection['totalBottleCount'])
+def showDollarValue(name, amt):
+	print('%s: %s' % (
+		stylize(Style.BRIGHT, name),
+		stylize(Fore.GREEN, '$%.2f' % amt)))
+
+showBottleCount('Average Annual Consumption', projection['averageAnnualConsumption'])
+showBottleCount('Total Bottle Count', projection['totalBottleCount'])
 print()
+
+if showCosts:
+	showDollarValue('Average Bottle Value', projection['totalValue'] / projection['totalBottleCount'])
+	showDollarValue('Total Value', projection['totalValue'])
+	print()
 
 for holdYear in projection['byYear']:
 	count = projection['byYear'][holdYear]['count']

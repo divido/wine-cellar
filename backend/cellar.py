@@ -102,6 +102,7 @@ class Cellar:
 
 		averageAnnualConsumption = totalConsumption / numYears
 		totalBottleCount = 0
+		totalValue = 0
 
 		currentYear = now.year
 		aggregated = {}
@@ -116,6 +117,7 @@ class Cellar:
 
 		for label in self.labels:
 			inventoryByYear = label.inventoryByYear()
+			totalValue += label.unconsumedValue
 			for holdYear, holdAmt in inventoryByYear.items():
 				createYears(holdYear)
 				aggregated[holdYear]['count'] += holdAmt
@@ -134,6 +136,7 @@ class Cellar:
 		return {
 			'averageAnnualConsumption': averageAnnualConsumption,
 			'totalBottleCount': totalBottleCount,
+			'totalValue': totalValue,
 			'byYear': aggregated
 		}
 

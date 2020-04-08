@@ -10,17 +10,16 @@ from datetime import date
 
 from backend.cellar import Cellar
 from scripts.styling import stylize
+from scripts.options import parseArguments
 
+[showCosts] = parseArguments([('c', 'cost', 'Also show bottle costs')])
 cellar = Cellar()
 
 bottlesByYear = cellar.bottlesByYear
 for year in sorted(bottlesByYear):
 	bottles = bottlesByYear[year]
 	count = len(bottles)
-
-	print("%s: %s" % (
-		stylize(Fore.BLUE, "%d" % year),
-		stylize(Fore.GREEN, '%d bottle%s' % (count, ' ' if count == 1 else 's'))))
+	yearCost = 0
 
 	labels = {}
 	for bottle in bottles:
@@ -29,17 +28,30 @@ for year in sorted(bottlesByYear):
 			stylize(Fore.BLUE, bottle.label.varietalDescription),
 			stylize(Style.DIM, bottle.label.winery.region.description))
 
+		if showCosts:
+			avgPrice = bottle.label.averagePrice(True)
+			labelDesc += "  " + stylize(Style.DIM + Fore.GREEN, "$%.2f" % avgPrice)
+			yearCost += avgPrice
+
 		if labelDesc not in labels:
 			labels[labelDesc] = 1
 		else:
 			labels[labelDesc] += 1
 
+	yearDesc = "%s: %s" % (
+		stylize(Fore.BLUE, "%d" % year),
+		stylize(Fore.GREEN, '%d bottle%s' % (count, ' ' if count == 1 else 's')))
+
+	if showCosts:
+		yearDesc += "  " + stylize(Style.DIM + Fore.GREEN, "$%.2f" % yearCost)
+
+	print(yearDesc)
+
 	for desc in labels:
 		count = labels[desc];
-		countStr = ""
 		if count > 1:
-			countStr = stylize(Fore.GREEN, ' (%d bottles)' % count)
+			desc += ' ' +stylize(Fore.GREEN, ' (%d bottles)' % count)
 
-		print("      %s %s" % (desc, countStr))
+		print("      " + desc)
 
 	print()

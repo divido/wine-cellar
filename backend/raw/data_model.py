@@ -126,6 +126,41 @@ class Label(TableBase):
 
 		return len([bottle for bottle in self.bottles if bottle.consumption != None])
 
+	@property
+	def unconsumedValue(self):
+		"""This returns the total value (price) of all unconsumed bottles of
+		this label, added together.
+		"""
+
+		value = 0
+		for bottle in self.bottles:
+			if bottle.consumption == None:
+				value += bottle.cost
+
+		return value
+
+	@property
+	def totalValue(self):
+		"""This returns the total value (price) of all bottles ever entered,
+		whether consumed or not.
+		"""
+
+		value = 0
+		for bottle in self.bottles:
+			value += bottle.cost
+
+		return value
+
+	def averagePrice(self, onlyUnconsumed):
+		"""This returns the average price of the wine, either across all entries
+		or only the unconsumed ones.
+		"""
+
+		if onlyUnconsumed:
+			return self.unconsumedValue / (len(self.bottles) - self.numberConsumed)
+
+		return self.totalValue / len(self.bottles)
+
 	def inventoryByYear(self):
 		"""This computes the number of bottles of this label that are owned
 		(i.e., not consumed). The results are grouped by hold year and returned
