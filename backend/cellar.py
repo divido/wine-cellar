@@ -87,21 +87,23 @@ class Cellar:
 	def consumptionProjection(self):
 		"""This computes a projection of the cellar bottles over time. The
 		resulting dictionary object contains an entry for the average annual
-		consumption, the total bottle count, and the number to be consumed each
-		year (including excess / shortage amounts). This is useful for
-		visualizing the cellar contents over time.
+		consumption, the averaged consumed bottle's cost, the total stored
+		bottle count / value, and the number to be consumed each year (including
+		excess / shortage amounts). This is useful for visualizing the cellar
+		contents over time.
 		"""
 
 		q = db.session.query(
 			func.count(Bottle.consumption),
 			func.min(Bottle.consumption))
-		totalConsumption, first = q.one()
+		numConsumed, first = q.one()
 
 		now = date.today()
 		numYears = (now - first).days / 365;
 
-		averageAnnualConsumption = totalConsumption / numYears
-		totalBottleCount = 0
+		averageAnnualConsumption = numConsumed / numYears
+		numStored = 0
+		valueStored = 0
 		totalValue = 0
 
 		currentYear = now.year
@@ -117,11 +119,12 @@ class Cellar:
 
 		for label in self.labels:
 			inventoryByYear = label.inventoryByYear()
-			totalValue += label.unconsumedValue
+			valueStored += label.unconsumedValue
+			totalValue += label.totalValue
 			for holdYear, holdAmt in inventoryByYear.items():
 				createYears(holdYear)
 				aggregated[holdYear]['count'] += holdAmt
-				totalBottleCount += holdAmt
+				numStored += holdAmt
 
 		carryover = 0
 		for holdYear in aggregated:
@@ -135,8 +138,11 @@ class Cellar:
 
 		return {
 			'averageAnnualConsumption': averageAnnualConsumption,
-			'totalBottleCount': totalBottleCount,
-			'totalValue': totalValue,
+			'averageConsumedBottleValue': (totalValue - valueStored) / numConsumed,
+
+			'numStored': numStored,
+			'valueStored': valueStored,
+
 			'byYear': aggregated
 		}
 

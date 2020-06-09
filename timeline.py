@@ -26,12 +26,13 @@ def showDollarValue(name, amt):
 		stylize(Fore.GREEN, '$%.2f' % amt)))
 
 showBottleCount('Average Annual Consumption', projection['averageAnnualConsumption'])
-showBottleCount('Total Bottle Count', projection['totalBottleCount'])
+showBottleCount('Total Stored Bottle Count', projection['numStored'])
 print()
 
 if showCosts:
-	showDollarValue('Average Bottle Value', projection['totalValue'] / projection['totalBottleCount'])
-	showDollarValue('Total Value', projection['totalValue'])
+	showDollarValue('Average Consumed Bottle Value', projection['averageConsumedBottleValue'])
+	showDollarValue('Average Stored Bottle Value', projection['valueStored'] / projection['numStored'])
+	showDollarValue('Total Stored Value', projection['valueStored'])
 	print()
 
 for holdYear in projection['byYear']:
