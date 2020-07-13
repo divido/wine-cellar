@@ -17,12 +17,15 @@ longestHold = 0
 currentYear = date.today().year
 
 for bottle in cellar.bottles:
-	region = bottle.label.winery.region
-	regionWidth = max(regionWidth, len(region.name))
 	longestHold = max(longestHold, bottle.hold_until)
 
+byRegion = cellar.byRegion();
+for data in byRegion:
+	for region in data['regions']:
+		regionWidth = max(regionWidth, len(region['region'].name))
+
 firstRegion = True
-for data in cellar.byRegion():
+for data in byRegion:
 	print('%s %s' % (
 		stylize(Fore.GREEN, '%2d bottle%s' % (
 			len(data['bottles']),
