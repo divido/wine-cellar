@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 
-from .raw.data_model import Label, Bottle, Region
+from .raw.data_model import Label, Bottle, Region, Varietal
 from .raw import db
 from .databaseLogger import DatabaseLogger
 from .dividoLayout import DividoLayout
 
 from sqlalchemy.sql import func
 from datetime import date
+
+import math
 
 # --------------------------------------------------------------------------------
 
@@ -99,7 +101,7 @@ class Cellar:
 		numConsumed, first = q.one()
 
 		now = date.today()
-		numYears = (now - first).days / 365;
+		numYears = (now - first).days / 365
 
 		averageAnnualConsumption = numConsumed / numYears
 		numStored = 0
@@ -182,6 +184,63 @@ class Cellar:
 				'bottles': regionBottles[country][region]
 			} for region in sorted(regionBottles[country], key=lambda r: len(regionBottles[country][r]), reverse=True)]
 		} for country in sorted(countryBottles, key=lambda c: len(countryBottles[c]), reverse=True)]
+
+	def byVarietal(self):
+		"""This returns a count of each varietal, separated into several
+		different "buckets" by boldness. Each bucket contains the list of
+		varietals, and their respective bottle counts, separated into "pure"
+		(bottles that are 100% that varietal) and "blend" (the summated portions
+		across all non-pure bottles). The blendCount does not given any
+		information about how many physical bottles contain the varietal, but
+		gives a sense of how much of the varietal is featured in the cellar.
+		"""
+
+		numBuckets = 6
+		bucketWidth = 12
+
+		varietalBuckets = [[] for i in range(0, numBuckets)]
+
+		# --------------------
+
+		totalCount = {}
+		pureCountByYear = {}
+		blendCountByYear = {}
+
+		q = db.session.query(Varietal)
+		for varietal in q.all():
+			totalCount[varietal] = 0
+			pureCountByYear[varietal] = {}
+			blendCountByYear[varietal] = {}
+			bucketIndex = min(numBuckets - 1, math.floor(varietal.boldness / bucketWidth))
+
+			varietalBuckets[bucketIndex].append(varietal)
+
+		q = db.session.query(Bottle).filter(Bottle.consumption == None)
+		for bottle in q.all():
+			for blend in bottle.label.blends:
+				totalCount[blend.varietal] += blend.portion / 100
+
+				if bottle.hold_until not in pureCountByYear[blend.varietal]:
+					pureCountByYear[blend.varietal][bottle.hold_until] = 0
+					blendCountByYear[blend.varietal][bottle.hold_until] = 0
+
+				if blend.portion == 100:
+					pureCountByYear[blend.varietal][bottle.hold_until] += 1
+				else:
+					blendCountByYear[blend.varietal][bottle.hold_until] += blend.portion / 100
+
+		return [{
+			'bucketName': 'Boldness ' + (
+				'<= ' + str(bucketWidth) if i == 0 else
+				'>= ' + str(bucketWidth * (numBuckets - 1) + 1) if i == numBuckets - 1 else
+				str(bucketWidth * i + 1) + ' to ' + str(bucketWidth * (i + 1))),
+			'data': [{
+				'varietal': varietal,
+				'totalCount': totalCount[varietal],
+				'pureCountByYear': pureCountByYear[varietal],
+				'blendCountByYear': blendCountByYear[varietal]
+			} for varietal in sorted(varietalBuckets[i], key=lambda v: totalCount[v], reverse=True)]
+		} for i in reversed(range(0, numBuckets))]
 
 	# --------------------------------------------------------------------------------
 
