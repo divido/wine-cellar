@@ -119,14 +119,16 @@ class Cellar:
 
 		createYears(currentYear)
 
-		for label in self.labels:
-			inventoryByYear = label.inventoryByYear()
-			valueStored += label.unconsumedValue
-			totalValue += label.totalValue
-			for holdYear, holdAmt in inventoryByYear.items():
+		q = db.session.query(Bottle)
+		for bottle in q:
+			if bottle.consumption is None:
+				valueStored += bottle.cost
+				numStored += 1
+				holdYear = max(currentYear, bottle.hold_until)
 				createYears(holdYear)
-				aggregated[holdYear]['count'] += holdAmt
-				numStored += holdAmt
+				aggregated[holdYear]['count'] += 1
+
+			totalValue += bottle.cost
 
 		carryover = 0
 		for holdYear in aggregated:
