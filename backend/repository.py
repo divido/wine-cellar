@@ -99,3 +99,11 @@ class Repository:
 		db.session.add(bottle)
 		self.logger.newBottle(bottle)
 		return bottle
+
+	def changeLabelWinery(self, label, winery):
+		"""Change the winery a label belongs to. This is expected to be used
+		when fracturing a winery into multiple regions.
+		"""
+
+		label.winery = winery
+		self.logger.changedLabelWinery(label)

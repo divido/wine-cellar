@@ -31,11 +31,17 @@ def getWinery(repo):
 
 [showCosts] = parseArguments([('c', 'cost', 'Also show bottle costs')])
 repo = Repository()
-winery = getWinery(repo)
+wineryName = getWinery(repo).name
+
+labels = []
+for winery in repo.wineries:
+	if winery.name == wineryName:
+		labels += winery.labels
+
 print()
 
 currentYear = date.today().year
-for label in sorted(winery.labels, key=lambda l: l.weightedBoldness, reverse=True):
+for label in sorted(labels, key=lambda l: l.weightedBoldness, reverse=True):
 	labelDesc = "%s  %s  %s" % (
 		stylize(Style.BRIGHT, label.description),
 		stylize(Fore.BLUE, label.varietalDescription),

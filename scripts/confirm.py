@@ -5,14 +5,15 @@ def confirmAndCommit(db, logger):
 	rolled back.
 	"""
 
-	logger.printChanges()
+	if logger.hasChanges():
+		logger.printChanges()
 
-	while True:
-		confirm = input("Commit [y/n]? ")
-		if confirm == 'n':
-			db.session.rollback()
-			break
+		while True:
+			confirm = input("Commit [y/n]? ")
+			if confirm == 'n':
+				db.session.rollback()
+				break
 
-		if confirm == 'y':
-			db.session.commit()
-			break
+			if confirm == 'y':
+				db.session.commit()
+				break

@@ -37,6 +37,24 @@ def getRegion(repo):
 
 # ----------------------------------------
 
+def disambiguateRegion(repo, matchingWineries):
+	"""This selects which winery among multiples with the same name"""
+
+	print("\nMultiple Regions for %s:" % stylize(Style.BRIGHT, matchingWineries[0].name))
+	for winery in matchingWineries:
+		print("  " + stylize(Style.DIM, winery.region.description))
+
+	print()
+	region = getRegion(repo)
+
+	for winery in matchingWineries:
+		if winery.region is region:
+			return winery
+
+	return repo.addWinery(winery, region)
+
+# ----------------------------------------
+
 def getWinery(repo):
 	"""This prompts the user to select a winery from the list of all current
 	wineries, or to enter a new one.
@@ -44,7 +62,17 @@ def getWinery(repo):
 
 	idx, winery = textEntry("Winery> ", [winery.name for winery in repo.wineries])
 	if idx is not None:
-		return repo.wineries[idx]
+		# Check to see if multiple wineries have the same name (happens when a
+		# winery is split into multiple regions)
+		matchingWineries = []
+		for w in repo.wineries:
+			if w.name == winery:
+				matchingWineries.append(w)
+
+		if len(matchingWineries) == 1:
+			return repo.wineries[idx]
+
+		return disambiguateRegion(repo, matchingWineries)
 
 	print('\n*** New Winery ***')
 	return repo.addWinery(winery, getRegion(repo))
