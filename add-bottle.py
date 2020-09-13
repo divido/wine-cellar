@@ -70,6 +70,7 @@ def getWinery(repo):
 				matchingWineries.append(w)
 
 		if len(matchingWineries) == 1:
+			print("  " + stylize(Style.DIM, repo.wineries[idx].region.description))
 			return repo.wineries[idx]
 
 		return disambiguateRegion(repo, matchingWineries)
