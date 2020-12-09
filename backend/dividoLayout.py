@@ -51,6 +51,30 @@ class BottleStack:
 
 		self.unpositioned.add(bottle)
 
+	def removeBoldestUnpositioned(self, num):
+		"""This finds the boldest unpositioned bottles and removes them from
+		this stack, returning them instead. This is used to address overflows in
+		the stack.
+		"""
+
+		boldest = sorted(self.unpositioned, key=lambda bottle: -bottle.label.weightedBoldness)[0:num]
+		for bottle in boldest:
+			self.unpositioned.remove(bottle)
+
+		return boldest
+
+	def removeLightestUnpositioned(self, num):
+		"""This finds the lightest unpositioned bottles and removes them from
+		this stack, returning them instead. This is used to address overflows in
+		the stack.
+		"""
+
+		lightest = sorted(self.unpositioned, key=lambda bottle: bottle.label.weightedBoldness)[0:num]
+		for bottle in lightest:
+			self.unpositioned.remove(bottle)
+
+		return lightest
+
 	def openSlotsAtOrAbove(self, costCoord):
 		"""This counts the number of open slots available within the stack at or
 		above the specified cost coordinate. This takes into account all
@@ -64,6 +88,13 @@ class BottleStack:
 
 		return available - used
 
+	def availableSpace(self):
+		"""This returns the number of open slots this stack will have, after
+		positioning the currently assigned bottles.
+		"""
+
+		return self.openSlotsAtOrAbove(0) - len(self.unpositioned)
+
 	def positionBottles(self, logger, costBins):
 		"""This causes all unpositioned bottles to be given positions within the
 		stack. The supplied cost bins are used to guide the placement of the
@@ -74,7 +105,7 @@ class BottleStack:
 		bottles, an exception is raised.
 		"""
 
-		if self.openSlotsAtOrAbove(0) < len(self.unpositioned):
+		if self.availableSpace() < 0:
 			raise RuntimeError('Not enough open slots for all unpositioned bottles.')
 
 		# Maintaining the number of slots above is important to know if we need
@@ -206,13 +237,90 @@ class DividoLayout:
 
 	def positionBottles(self, logger):
 		"""Position the bottles within the stacks. The BottleStack objects do
-		most of the work, this basically just iterates over them and provides a
-		consistent set of cost bins.
+		most of the work, this iterates over them and provides a consistent set
+		of cost bins.
+
+		However, this also now manages overflows. The basic algorithm of this is
+		to look through the boldness bins and find overflows, then move those
+		bottles to the closest bin with space (or split between both if both
+		directions are available). When "moving bottles" to a bolder bin, the
+		boldest bottles are move one step, then the boldest of that bin is moved
+		one step, etc. This prevents radical moves of bottles. Likewise for
+		lighter bin moves.
+
+		Most of this logic is untested. I wrote the basic algorithm, and it
+		worked for my one case. It may be exercised again in the future, and
+		hopefully it performs adequately in that condition.
 		"""
 
+		# First, check for overfull stacks
+		for holdBin in [0, 1]:
+			for boldBin in range(0, len(self.boldBins)):
+				stack = self.stacks[boldBin][holdBin]
+
+				# This is a loop in case the closest with available space
+                # doesn't have enough. In that case, we move what we can and
+                # then loop back to keep moving
+				while stack.availableSpace() < 0:
+					bottlesToMove = -stack.availableSpace()
+
+					lighterBin = None
+					for b in reversed(range(0, boldBin)):
+						lighterAvailable = self.stacks[b][holdBin].availableSpace()
+						if lighterAvailable > 0:
+							lighterBin = b
+							break
+
+					bolderBin = None
+					for b in range(boldBin + 1, len(self.boldBins)):
+						bolderAvailable = self.stacks[b][holdBin].availableSpace()
+						if bolderAvailable > 0:
+							bolderBin = b
+							break
+
+					# --------------------
+
+					if lighterBin is None and bolderBin is None:
+						raise RuntimeError('Overfull Stack with nowhere to go.')
+
+					elif bolderBin is not None and (lighterBin is None or (bolderBin - boldBin < boldBin - lighterBin)):
+						self._moveOverflowBottlesBolder(holdBin, boldBin, bolderBin, min(bottlesToMove, bolderAvailable))
+
+					elif lighterBin is not None and (bolderBin is None or (boldBin - lighterBin < bolderBin - boldBin)):
+						self._moveOverflowBottlesLighter(holdBin, boldBin, lighterBin, min(bottlesToMove, lighterAvailable))
+
+					else:
+						self._moveOverflowBottlesBolder(holdBin, bolderBin, bolderBin, min(int(math.floor(bottlesToMove / 2.0)), bolderAvailable))
+						self._moveOverflowBottlesLighter(holdBin, bolderBin, lighterBin, min(int(math.ceil(bottlesToMove / 2.0)), lighterAvailable))
+
+		# Now we are ready to position the bottles vertically
 		for holdStacks in self.stacks:
 			for stack in holdStacks:
 				stack.positionBottles(logger, self.costBins)
+
+	# ----------------------------------------
+
+	def _moveOverflowBottlesBolder(self, holdBin, fromBoldBin, toBoldBin, num):
+		"""This helper moves bottles from a lighter bin to a bolder bin. The
+		number of bottles is moved one step at a time. This should help preserve
+		the condition that all bolder bottles are in bolder (or equal) bins to
+		any given bottle.
+		"""
+
+		for b in range(fromBoldBin, toBoldBin):
+			bottles = self.stacks[b][holdBin].removeBoldestUnpositioned(num)
+			for bottle in bottles:
+				self.stacks[b + 1][holdBin].addUnpositioned(bottle)
+
+	def _moveOverflowBottlesLighter(self, holdBin, fromBoldBin, toBoldBin, num):
+		"""This helper is the converse of _moveOverflowBottlesBolder, which
+		moves bottles to a lighter bin.
+		"""
+
+		for b in range(fromBoldBin, toBoldBin, -1):
+			bottles = self.stacks[b][holdBin].removeLightestUnpositioned(num)
+			for bottle in bottles:
+				self.stacks[b - 1][holdBin].addUnpositioned(bottle)
 
 	# ----------------------------------------
 
