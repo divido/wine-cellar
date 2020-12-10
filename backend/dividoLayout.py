@@ -307,6 +307,9 @@ class DividoLayout:
 		any given bottle.
 		"""
 
+		print("WARNING, moving %d overflow bottles from stacks %r to %r for holdBin %d. You may want to hand check this lightly tested algorithm" % (
+			num, self._boldnessCoordsForBin(fromBoldBin), self._boldnessCoordsForBin(toBoldBin), holdBin))
+
 		for b in range(fromBoldBin, toBoldBin):
 			bottles = self.stacks[b][holdBin].removeBoldestUnpositioned(num)
 			for bottle in bottles:
@@ -316,6 +319,9 @@ class DividoLayout:
 		"""This helper is the converse of _moveOverflowBottlesBolder, which
 		moves bottles to a lighter bin.
 		"""
+
+		print("WARNING, moving %d overflow bottles from stacks %r to %r for holdBin %d. You may want to hand check this lightly tested algorithm" % (
+			num, self._boldnessCoordsForBin(fromBoldBin), self._boldnessCoordsForBin(toBoldBin), holdBin))
 
 		for b in range(fromBoldBin, toBoldBin, -1):
 			bottles = self.stacks[b][holdBin].removeLightestUnpositioned(num)
