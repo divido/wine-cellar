@@ -205,8 +205,19 @@ class DatabaseLogger:
 	def _printChangedPositions(self):
 		"""Print all bottles that have had their positions changed."""
 
-		for bottle in sorted(self._bottlePositions, key=lambda b: b.coordinate):
+		lastStack=None
+		lastRow=None
+		for bottle in sorted(self._bottlePositions, key=lambda b: (b.coordinate[0], b.coordinate[1], -b.coordinate[2])):
 			if bottle.boldness_coord != None or bottle.price_coord != None or bottle.hold_coord != None:
+				if bottle.boldness_coord != lastStack:
+					print(stylize(Fore.GREEN, '\n-------- Stack %d --------------------------------' % bottle.boldness_coord))
+
+				elif bottle.price_coord != lastRow:
+					print('')
+
+				lastStack = bottle.boldness_coord
+				lastRow = bottle.price_coord
+
 				print("%s %s %s" % (
 					stylize(Fore.BLUE, "Move"),
 					stylize(Style.BRIGHT, bottle.label.description),
