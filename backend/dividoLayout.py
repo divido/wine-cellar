@@ -358,7 +358,7 @@ class DividoLayout:
 
 			if included >= desired or len(remainingData) == 0:
 				binWidth = 0
-				while included >= desired and binsToGo - binWidth > 0:
+				while included >= desired - (0.25 * desiredPerBin) and binsToGo - binWidth > 0:
 					binWidth += 1
 					desired += desiredPerBin
 					if not allowMultiple: break
