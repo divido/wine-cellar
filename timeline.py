@@ -6,6 +6,7 @@
 # --------------------------------------------------------------------------------
 
 from colorama import Fore, Back, Style
+from datetime import date
 
 from backend.cellar import Cellar
 from scripts.styling import stylize
@@ -14,6 +15,8 @@ from scripts.options import parseArguments
 [showCosts] = parseArguments([('c', 'cost', 'Also show total inventory value')])
 cellar = Cellar()
 projection = cellar.consumptionProjection();
+
+currentYear = date.today().year
 
 def showBottleCount(name, amt):
 	print('%s: %s' % (
@@ -27,6 +30,7 @@ def showDollarValue(name, amt):
 
 showBottleCount('Average Annual Consumption', projection['averageAnnualConsumption'])
 showBottleCount('Total Stored Bottle Count', projection['numStored'])
+showBottleCount('  Held For Future Years', projection['numStored'] - projection['byYear'][currentYear]['count'])
 print()
 
 if showCosts:
