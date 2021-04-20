@@ -117,7 +117,7 @@ class BottleStack:
 
 		while len(self.unpositioned) > 0:
 			notEnoughRoomAbove = (openAbove < len(self.unpositioned))
-			costMeetsBin = (self.unpositioned[0].cost < costBins[costCoord][0])
+			costMeetsBin = (self.unpositioned[0].inflatedCost < costBins[costCoord][0])
 			roomAtThisLevel = (openAtOrAbove - openAbove > 0)
 
 			if roomAtThisLevel and (notEnoughRoomAbove or costMeetsBin):
@@ -204,7 +204,7 @@ class DividoLayout:
 		], NumBoldLevels, True)
 
 		self.costBins = self._createBins([
-			bottle.cost for bottle in bottles
+			bottle.inflatedCost for bottle in bottles
 		], NumCostLevels, False)
 
 		self.drinkCoords = [0]

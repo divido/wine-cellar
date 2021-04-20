@@ -135,7 +135,7 @@ class Label(TableBase):
 		value = 0
 		for bottle in self.bottles:
 			if bottle.consumption == None:
-				value += bottle.cost
+				value += bottle.inflatedCost
 
 		return value
 
@@ -147,7 +147,7 @@ class Label(TableBase):
 
 		value = 0
 		for bottle in self.bottles:
-			value += bottle.cost
+			value += bottle.inflatedCost
 
 		return value
 
@@ -248,10 +248,27 @@ class Bottle(TableBase):
 
 		return (self.boldness_coord, self.price_coord, self.hold_coord)
 
+	@property
+	def inflatedCost(self):
+		"""This computes the price in this year's dollars"""
+		inflated = self.cost
+
+		# https://www.in2013dollars.com/Wine-at-home/price-inflation/2020-to-2021?amount=10000
+		if self.acquisition.year <= 2018: # 2018-to-2019
+			inflated *= 1.010727
+
+		if self.acquisition.year <= 2019: # 2019-to-2020
+			inflated *= 1.002446
+
+		if self.acquisition.year <= 2020: # 2020-to-2021
+			inflated *= 1.004627
+
+		return round(inflated, 2)
+
 	def __lt__(self, other):
 		"""This comparator sorts bottles by cost, keeping like-bottles together"""
-		selfAttrs = (self.cost, self.label.winery.name, self.label.name, self.label.vintage)
-		otherAttrs = (other.cost, other.label.winery.name, other.label.name, other.label.vintage)
+		selfAttrs = (self.inflatedCost, self.label.winery.name, self.label.name, self.label.vintage)
+		otherAttrs = (other.inflatedCost, other.label.winery.name, other.label.name, other.label.vintage)
 		return selfAttrs < otherAttrs
 
 MakeParentChild(Label, Bottle)

@@ -122,13 +122,13 @@ class Cellar:
 		q = db.session.query(Bottle)
 		for bottle in q:
 			if bottle.consumption is None:
-				valueStored += bottle.cost
+				valueStored += bottle.inflatedCost
 				numStored += 1
 				holdYear = max(currentYear, bottle.hold_until)
 				createYears(holdYear)
 				aggregated[holdYear]['count'] += 1
 
-			totalValue += bottle.cost
+			totalValue += bottle.inflatedCost
 
 		carryover = 0
 		for holdYear in aggregated:
