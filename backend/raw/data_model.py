@@ -261,7 +261,10 @@ class Bottle(TableBase):
 			inflated *= 1.002446
 
 		if self.acquisition.year <= 2020: # 2020-to-2021
-			inflated *= 1.004627
+			inflated *= 1.010612
+
+		if self.acquisition.year <= 2021: # 2021-to-2022
+			inflated *= 1.011850
 
 		return round(inflated, 2)
 
