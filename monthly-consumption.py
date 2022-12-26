@@ -30,7 +30,7 @@ for year in sorted(consumption):
 		if showCosts:
 			totalCost = 0
 			for bottle in consumption[year][month]:
-				totalCost += bottle.cost
+				totalCost += bottle.inflatedCost
 
 			monthSummary += "  " + stylize(Style.DIM + Fore.GREEN, "$%.2f" % totalCost)
 
@@ -40,7 +40,7 @@ for year in sorted(consumption):
 			for bottle in consumption[year][month]:
 				desc = "  " + bottle.label.description
 				if showCosts:
-					desc += "  " + stylize(Style.DIM, "$%.2f" % bottle.cost)
+					desc += "  " + stylize(Style.DIM, "$%.2f" % bottle.inflatedCost)
 
 				print(desc)
 
