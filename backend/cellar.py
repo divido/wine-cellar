@@ -56,6 +56,20 @@ class Cellar:
 
 		return inventory
 
+	@property
+	def bottlesPastHold(self):
+		"""This returns all bottles in the cellar that are not consumed and have
+		a hold year in the past."""
+
+		currentYear = date.today().year
+		pastHold = []
+
+		for bottle in self.bottles:
+			if bottle.hold_until < currentYear:
+				pastHold.append(bottle)
+
+		return pastHold
+
 	# --------------------------------------------------------------------------------
 
 	def consumptionByMonth(self):
