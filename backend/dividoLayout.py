@@ -264,12 +264,21 @@ class DividoLayout:
 				while stack.availableSpace() < 0:
 					bottlesToMove = -stack.availableSpace()
 
+					print("WARNING, overfilled stack %d (%r), need to move %d bottles" % (
+					        boldBin, self._boldnessCoordsForBin(boldBin), bottlesToMove))
+					print("  You may want to hand check this lightly tested algorithm")
+
 					lighterBin = None
 					for b in reversed(range(0, boldBin)):
 						lighterAvailable = self.stacks[b][holdBin].availableSpace()
 						if lighterAvailable > 0:
 							lighterBin = b
 							break
+
+					if (lighterBin is None):
+						print("  No lighter bin is available");
+					else:
+						print("  lighterBin = %d (%r), lighterAvailable = %d" % (lighterBin, self._boldnessCoordsForBin(lighterBin), lighterAvailable))
 
 					bolderBin = None
 					for b in range(boldBin + 1, len(self.boldBins)):
@@ -278,18 +287,26 @@ class DividoLayout:
 							bolderBin = b
 							break
 
+					if (bolderBin is None):
+						print("  No bolder bin is available");
+					else:
+						print("  bolderBin = %d (%r), bolderAvailable = %d" % (bolderBin, self._boldnessCoordsForBin(bolderBin), bolderAvailable))
+
 					# --------------------
 
 					if lighterBin is None and bolderBin is None:
 						raise RuntimeError('Overfull Stack with nowhere to go.')
 
 					elif bolderBin is not None and (lighterBin is None or (bolderBin - boldBin < boldBin - lighterBin)):
+						print("  Bolder bin is closer, moving there");
 						self._moveOverflowBottlesBolder(holdBin, boldBin, bolderBin, min(bottlesToMove, bolderAvailable))
 
 					elif lighterBin is not None and (bolderBin is None or (boldBin - lighterBin < bolderBin - boldBin)):
+						print("  Lighter bin is closer, moving there");
 						self._moveOverflowBottlesLighter(holdBin, boldBin, lighterBin, min(bottlesToMove, lighterAvailable))
 
 					else:
+						print("  Bolder/Lighter bins are equidistant, splitting between");
 						self._moveOverflowBottlesBolder(holdBin, bolderBin, bolderBin, min(int(math.floor(bottlesToMove / 2.0)), bolderAvailable))
 						self._moveOverflowBottlesLighter(holdBin, bolderBin, lighterBin, min(int(math.ceil(bottlesToMove / 2.0)), lighterAvailable))
 
@@ -307,8 +324,8 @@ class DividoLayout:
 		any given bottle.
 		"""
 
-		print("WARNING, moving %d overflow bottles from stacks %r to %r for holdBin %d. You may want to hand check this lightly tested algorithm" % (
-			num, self._boldnessCoordsForBin(fromBoldBin), self._boldnessCoordsForBin(toBoldBin), holdBin))
+		print("  Moving %d overflow bottles from stacks %d (%r) to bolder stack %d (%r) for holdBin %d" % (
+			num, fromBoldBin, self._boldnessCoordsForBin(fromBoldBin), toBoldBin, self._boldnessCoordsForBin(toBoldBin), holdBin))
 
 		for b in range(fromBoldBin, toBoldBin):
 			bottles = self.stacks[b][holdBin].removeBoldestUnpositioned(num)
@@ -320,8 +337,8 @@ class DividoLayout:
 		moves bottles to a lighter bin.
 		"""
 
-		print("WARNING, moving %d overflow bottles from stacks %r to %r for holdBin %d. You may want to hand check this lightly tested algorithm" % (
-			num, self._boldnessCoordsForBin(fromBoldBin), self._boldnessCoordsForBin(toBoldBin), holdBin))
+		print("  Moving %d overflow bottles from stacks %d (%r) to lighter stack %d (%r) for holdBin %d" % (
+			num, fromBoldBin, self._boldnessCoordsForBin(fromBoldBin), toBoldBin, self._boldnessCoordsForBin(toBoldBin), holdBin))
 
 		for b in range(fromBoldBin, toBoldBin, -1):
 			bottles = self.stacks[b][holdBin].removeLightestUnpositioned(num)
