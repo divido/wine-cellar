@@ -307,8 +307,8 @@ class DividoLayout:
 
 					else:
 						print("  Bolder/Lighter bins are equidistant, splitting between");
-						self._moveOverflowBottlesBolder(holdBin, bolderBin, bolderBin, min(int(math.floor(bottlesToMove / 2.0)), bolderAvailable))
-						self._moveOverflowBottlesLighter(holdBin, bolderBin, lighterBin, min(int(math.ceil(bottlesToMove / 2.0)), lighterAvailable))
+						self._moveOverflowBottlesBolder(holdBin, boldBin, bolderBin, min(int(math.floor(bottlesToMove / 2.0)), bolderAvailable))
+						self._moveOverflowBottlesLighter(holdBin, boldBin, lighterBin, min(int(math.ceil(bottlesToMove / 2.0)), lighterAvailable))
 
 		# Now we are ready to position the bottles vertically
 		for holdStacks in self.stacks:
