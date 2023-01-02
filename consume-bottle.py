@@ -13,11 +13,19 @@ from backend.cellar import Cellar
 from scripts.styling import stylize
 from scripts.fuzzyMatchTextEntry import textEntry
 from scripts.confirm import confirmAndCommit
+from scripts.options import parseArguments
+
+[all] = parseArguments([('a', 'all', 'Consider all bottles, regardless of hold date')])
 
 currentYear = date.today().year
 
 cellar = Cellar()
-bottles = cellar.bottlesByYear[currentYear]
+
+if all:
+	bottles = cellar.bottles
+else:
+	bottles = cellar.bottlesByYear[currentYear]
+
 while True:
 	idx, name = textEntry("Bottle> ", [bottle.label.description for bottle in bottles])
 
